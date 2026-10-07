@@ -242,29 +242,47 @@ document.addEventListener('input', function(event){ if(event.target.classList.co
 function submitForm() {
   const orderNumber = document.getElementById('orderNumber').value.trim();
   const purchasedQty = Number(document.getElementById('purchasedQty').value);
-  if (!orderNumber) { showMessage('Please enter your Etsy Order Number.', false); return; }
-  if (!purchasedQty || purchasedQty < 1) { showMessage('Please enter the total quantity purchased.', false); return; }
+
+  if (!orderNumber) {
+    showMessage('Please enter your Etsy Order Number.', false);
+    return;
+  }
+  if (!purchasedQty || purchasedQty < 1) {
+    showMessage('Please enter the total quantity purchased.', false);
+    return;
+  }
 
   const items = [];
   document.querySelectorAll('.item-row').forEach(function(row) {
     const name = row.querySelector('.name').value.trim();
     if (!name) return;
-    const sport = row.querySelector('.sport').value;
-    const otherSport = row.querySelector('.other-sport').value.trim();
+
     items.push({
       name: name,
       color: row.querySelector('.color').value,
       font: row.querySelector('.font').value,
-      sport: sport,
-      otherSport: otherSport,
+      sport: row.querySelector('.sport').value,
+      otherSport: row.querySelector('.other-sport').value.trim(),
       qty: Number(row.querySelector('.qty').value) || 1
     });
   });
 
-  if (items.length === 0) { showMessage('Please enter at least one name.', false); return; }
-  const total = items.reduce(function(sum, item) { return sum + item.qty; }, 0);
+  if (items.length === 0) {
+    showMessage('Please enter at least one name.', false);
+    return;
+  }
+
+  const total = items.reduce(function(sum, item) {
+    return sum + item.qty;
+  }, 0);
+
   if (total !== purchasedQty) {
-    showMessage('Your entered quantity is ' + total + ', but your Etsy order quantity is ' + purchasedQty + '. Please check the Qty column.', false);
+    showMessage(
+      'Your entered quantity is ' + total +
+      ', but your Etsy order quantity is ' + purchasedQty +
+      '. Please check the Qty column.',
+      false
+    );
     return;
   }
 
@@ -272,23 +290,35 @@ function submitForm() {
   button.disabled = true;
   button.textContent = 'Submitting...';
 
-  const orderPayload = { orderNumber: orderNumber, purchasedQty: purchasedQty, items: items };
+  const orderPayload = {
+    orderNumber: orderNumber,
+    purchasedQty: purchasedQty,
+    items: items
+  };
 
   fetch(APPS_SCRIPT_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
     body: JSON.stringify(orderPayload)
   })
-  .then(function(response) { return response.json(); })
-  .then(function(result) {
-    if (result.status !== 'success') throw new Error(result.message || 'Submission failed');
-    showMessage('Thank you! Your order details have been submitted. Order #' + orderNumber + ' — Total Qty: ' + total, true);
+  .then(function() {
+    showMessage(
+      'Thank you! Your order details have been sent. Order #' +
+      orderNumber + ' — Total Qty: ' + total,
+      true
+    );
     button.textContent = 'Submitted ✓';
-    window.scrollTo({top:0, behavior:'smooth'});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   })
   .catch(function(err) {
     console.error('Submission Error:', err);
-    showMessage('Submission failed. Please try again. If the problem continues, please contact us through Etsy Messages.', false);
+    showMessage(
+      'Submission failed. Please check your connection and try again.',
+      false
+    );
     button.disabled = false;
     button.textContent = 'Submit Order Details';
   });
