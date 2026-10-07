@@ -175,15 +175,20 @@
 </div>
 
 <script>
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhPd5rAqrLMYSXJ7jnskKSQtC5Ja2yQMIlttvaBt6wo0DKeU0ark2AUUC-rtEe8-Wq/exec';
-let OPTIONS = {
-  colors: ['Black', 'BOLD-Red', 'BOLD-Orange', 'BOLD-Yellow', 'BOLD-Lime Green', 'BOLD-Green', 'BOLD-Turquoise', 'BOLD-Blue', 'BOLD-Indigo', 'BOLD-Purple', 'BOLD-Pink', 'BOLD-Magenta', 'BOLD-Brown', 'BOLD-Golden Yellow', 'CAKE-Teal Pop', 'CAKE-Butter', 'CAKE-Cotton Candy', 'CAKE-Mint', 'CAKE-Lavender', 'CAKE-Bubblegum', 'SUNSET-Cobalt', 'SUNSET-Aqua', 'SUNSET-Rosy', 'SUNSET-Peach', 'SUNSET-Violet', 'SUNSET-Midnight', 'FALL-Olive', 'FALL-Cinnamon', 'FALL-Cranberry', 'FALL-Honey', 'FALL-Pumpkin', 'FALL-Wine'],
-  fonts: ['#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8', '#9', '#10', '#11', '#12', '#13', '#14', '#15', '#16', '#17', '#18', '#19', '#20', '#21', '#22', '#23', '#24', '#25', '#26', '#27', '#28', '#29', '#30'],
-  sports: ['American Football', 'Badminton', 'Ballet', 'Baseball', 'Basketball', 'Billiards', 'Bowling', 'Boxing', 'Cheerleading', 'Cricket', 'Fencing', 'Golf', 'Gymnastics', 'Handball', 'Ice Hockey', 'Pickleball', 'Soccer', 'Softball', 'Swimming', 'Table Tennis', 'Taekwondo', 'Tennis', 'Track & Field', 'Volleyball', 'Other']
-};
-document.addEventListener('DOMContentLoaded', function() {
-  addRow();
-});
+let OPTIONS = { colors: [], fonts: [], sports: [] };
+
+google.script.run
+  .withSuccessHandler(function(options) {
+    OPTIONS = options || { colors: [], fonts: [], sports: [] };
+    OPTIONS.colors = OPTIONS.colors || [];
+    OPTIONS.fonts = OPTIONS.fonts || [];
+    OPTIONS.sports = OPTIONS.sports || [];
+    if (!OPTIONS.colors.includes('Black')) OPTIONS.colors.unshift('Black');
+    if (!OPTIONS.sports.includes('Other')) OPTIONS.sports.push('Other');
+    addRow();
+  })
+  .withFailureHandler(function(error) { showMessage(error.message, false); })
+  .getFormOptions();
 
 function toggleReference(button) {
   const targetId = button.dataset.panel;
@@ -255,40 +260,13 @@ function submitForm() {
   const total=items.reduce((sum,item)=>sum+item.qty,0);
   if(total!==purchasedQty){ showMessage('Your entered quantity is '+total+', but your Etsy order quantity is '+purchasedQty+'. Please check the Qty column.',false); return; }
   const button=document.getElementById('submitButton'); button.disabled=true; button.textContent='Submitting...';
-  const payload = JSON.stringify({orderNumber:orderNumber,purchasedQty:purchasedQty,items:items});
-  const iframe = document.getElementById('submitFrame');
-  const form = document.getElementById('backendForm');
-  document.getElementById('payloadField').value = payload;
- let submitted = false;
-
-iframe.onload = function() {
-  if (!submitted) return;
-
-  showMessage(
-    'Thank you! Your order details have been sent. Order #' +
-    orderNumber +
-    ' — Total Qty: ' +
-    total,
-    true
-  );
-
-  button.textContent = 'Submitted ✓';
-  button.disabled = true;
-  window.scrollTo({top:0, behavior:'smooth'});
-};
-
-form.action = APPS_SCRIPT_URL;
-submitted = true;
-form.submit();
+  google.script.run
+    .withSuccessHandler(function(result){ showMessage('Thank you! Your order details have been submitted successfully. Order #'+result.orderNumber+' — Total Qty: '+result.totalQty,true); button.textContent='Submitted ✓'; window.scrollTo({top:0,behavior:'smooth'}); })
+    .withFailureHandler(function(error){ showMessage(error.message,false); button.disabled=false; button.textContent='Submit Order Details'; })
+    .submitOrder({orderNumber:orderNumber,purchasedQty:purchasedQty,items:items});
 }
 function showMessage(text,success){ const box=document.getElementById('message'); box.textContent=text; box.className=success?'success':'error'; box.style.display='block'; }
 function escapeHtml(text){ const div=document.createElement('div'); div.textContent=text; return div.innerHTML; }
 </script>
-
-<form id="backendForm" method="POST" target="submitFrame" style="display:none">
-  <input id="payloadField" name="payload" type="hidden">
-</form>
-<iframe id="submitFrame" name="submitFrame" style="display:none"></iframe>
-
 </body>
 </html>
