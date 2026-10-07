@@ -211,7 +211,7 @@
 </div>
 
 <script>
-  // 已經幫你替換好專屬的 Google Apps Script 網址
+  // 這裡已經換好你在 Google 部署拿到的網址
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhPd5rAqrLMYSXJ7jnsKKSQtC5Ja2yQMIIttvaBt6wo0DKeU0ark2AUUC-rtEe8-Wq/exec";
 
   function toggleReference(btn) {
@@ -265,7 +265,6 @@
     }
     btn.closest(".item-row").remove();
     
-    // Re-index row numbers
     const remainingRows = container.querySelectorAll(".item-row");
     remainingRows.forEach((row, idx) => {
       row.querySelector(".number").textContent = idx + 1;
@@ -293,7 +292,6 @@
     const rows = document.querySelectorAll(".item-row");
     const items = [];
 
-    // Fallback options if blank (inherited from row 1)
     let defaultColor = "";
     let defaultFont = "";
     let defaultSport = "";
