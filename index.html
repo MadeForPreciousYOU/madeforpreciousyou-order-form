@@ -259,24 +259,27 @@ function submitForm() {
   const iframe = document.getElementById('submitFrame');
   const form = document.getElementById('backendForm');
   document.getElementById('payloadField').value = payload;
-  let finished = false;
-  iframe.onload = function(){
-    if(finished) return;
-    finished = true;
-    showMessage('Thank you! Your order details have been submitted successfully. Order #'+orderNumber+' — Total Qty: '+total,true);
-    button.textContent='Submitted ✓';
-    window.scrollTo({top:0,behavior:'smooth'});
-  };
-  form.action = APPS_SCRIPT_URL;
-  form.submit();
-  setTimeout(function(){
-    if(!finished){
-      finished = true;
-      showMessage('Thank you! Your order details have been sent. Order #'+orderNumber+' — Total Qty: '+total,true);
-      button.textContent='Submitted ✓';
-      window.scrollTo({top:0,behavior:'smooth'});
-    }
-  }, 3500);
+ let submitted = false;
+
+iframe.onload = function() {
+  if (!submitted) return;
+
+  showMessage(
+    'Thank you! Your order details have been sent. Order #' +
+    orderNumber +
+    ' — Total Qty: ' +
+    total,
+    true
+  );
+
+  button.textContent = 'Submitted ✓';
+  button.disabled = true;
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+form.action = APPS_SCRIPT_URL;
+submitted = true;
+form.submit();
 }
 function showMessage(text,success){ const box=document.getElementById('message'); box.textContent=text; box.className=success?'success':'error'; box.style.display='block'; }
 function escapeHtml(text){ const div=document.createElement('div'); div.textContent=text; return div.innerHTML; }
