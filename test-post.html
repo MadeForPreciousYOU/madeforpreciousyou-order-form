@@ -3,33 +3,162 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POST Test</title>
+  <title>POST Confirmation Test</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+    }
+
+    button {
+      font-size: 18px;
+      padding: 12px 20px;
+      cursor: pointer;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
 </head>
+
 <body>
 
-  <button onclick="testPost()">測試發送 POST</button>
+  <button id="testButton" onclick="testPost()">
+    測試發送 POST
+  </button>
+
+  <div id="status">尚未測試</div>
+
+  <!-- 真正送出 POST 的 hidden form -->
+  <form
+    id="postForm"
+    method="POST"
+    target="responseFrame"
+    style="display:none;"
+  >
+    <input type="hidden" name="payload" id="payload">
+  </form>
+
+  <!-- Apps Script 的回傳頁面會載入這裡 -->
+  <iframe
+    name="responseFrame"
+    id="responseFrame"
+    style="display:none;">
+  </iframe>
+
 
   <script>
-    function testPost() {
-      const SCRIPT_URL =
-        "https://script.google.com/macros/s/AKfycbwhPd5rAqrLMYSXJ7jnsKKSQtC5Ja2yQMIIttvaBt6wo0DKeU0ark2AUUC-rtEe8-Wq/exec";
 
-      fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
-        body: JSON.stringify({
-          testMessage: "Hello from GitHub Pages!"
-        })
-      })
-      .then(response => {
-        console.log("POST 已送出，Response 狀態：", response.status);
-      })
-      .catch(error => {
-        console.log("前端可能出現 CORS 錯誤，先不用管：", error);
-      });
+    const SCRIPT_URL =
+      "https://script.google.com/macros/s/AKfycbwhPd5rAqrLMYSXJ7jnsKKSQtC5Ja2yQMIIttvaBt6wo0DKeU0ark2AUUC-rtEe8-Wq/exec";
+
+
+    let currentRequestId = null;
+    let timeoutTimer = null;
+
+
+    function testPost() {
+
+      const button = document.getElementById("testButton");
+      const status = document.getElementById("status");
+
+      button.disabled = true;
+      status.textContent = "Submitting...";
+
+      // 每次測試產生不同 ID
+      currentRequestId =
+        "test-" +
+        Date.now() +
+        "-" +
+        Math.random().toString(36).slice(2, 8);
+
+
+      const data = {
+        testMessage: "Hello from GitHub Pages via hidden iframe!",
+        requestId: currentRequestId
+      };
+
+
+      document.getElementById("payload").value =
+        JSON.stringify(data);
+
+
+      const form = document.getElementById("postForm");
+
+      form.action = SCRIPT_URL;
+
+
+      // 如果 15 秒內完全沒收到 Apps Script 的確認
+      timeoutTimer = setTimeout(function() {
+
+        status.textContent =
+          "❌ No confirmation received.";
+
+        button.disabled = false;
+
+      }, 15000);
+
+
+      // 真正提交
+      form.submit();
     }
+
+
+
+    // 等待 Apps Script 回傳的小網頁通知我們
+    window.addEventListener("message", function(event) {
+
+      let data = event.data;
+
+      // Apps Script 目前傳回的是 JSON 字串
+      if (typeof data === "string") {
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          return;
+        }
+      }
+
+
+      if (!data || !data.type) {
+        return;
+      }
+
+
+      // 成功
+      if (
+        data.type === "saved" &&
+        data.requestId === currentRequestId
+      ) {
+
+        clearTimeout(timeoutTimer);
+
+        document.getElementById("status").textContent =
+          "✅ SAVED — confirmed by Apps Script";
+
+        document.getElementById("testButton").disabled = false;
+
+        return;
+      }
+
+
+      // 後端失敗
+      if (data.type === "error") {
+
+        clearTimeout(timeoutTimer);
+
+        document.getElementById("status").textContent =
+          "❌ Server error: " + data.message;
+
+        document.getElementById("testButton").disabled = false;
+      }
+
+    });
+
   </script>
 
 </body>
